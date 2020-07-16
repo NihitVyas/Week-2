@@ -1,0 +1,57 @@
+## Reproducible Research
+###  Loading and preprocessing the data
+```{r message=FALSE}
+activity<-read.csv("activity.csv")
+activity$date<-as.Date(activity$date)
+str(activity)
+
+```
+### What is the average daily activity pattern?
+
+```{r message=FALSE}
+library(dplyr)
+library(ggplot2)
+activity_byDates<-activity%>%group_by(date)%>%summarise(stepsperday = sum(steps,na.rm = TRUE))
+head(activity_byDates)
+qplot(stepsperday,data =activity_byDates,fill="red",xlab ="Total Steps per Day",ylab = "Frequency",main = "Total Number of Steps Taken per Day")
+totalstepsmean<-activity_byDates%>%summarise(mean=mean(stepsperday,na.rm = TRUE))
+totalstepsmean
+totalstepsmedian<-activity_byDates%>%summarise(median=median(stepsperday,na.rm = TRUE))
+totalstepsmedian
+```
+
+### What is the average daily activity pattern?
+
+```{r message=FALSE}
+averagestepsperday<-activity%>%group_by(interval)%>%summarise(averagesteps=mean(steps,na.rm = TRUE))
+qplot(interval,averagesteps,data = averagestepsperday,geom="line",xlab = "5-minute intervals",ylab = "Average steps taken across all days")
+averagestepsperday[which.max(averagestepsperday$averagesteps),]
+```
+
+### Imputing missing values
+
+```{r message=FALSE}
+ totalna<-activity%>% summarise(missingvalues=sum(is.na(steps)))
+totalna
+activity_no_NA <- activity[which(!is.na(activity$steps)),]
+ interval_only <- activity_no_NA %>% group_by(interval) %>% summarise(average=mean(steps))
+ interval_only$average <- as.integer(interval_only$average)
+ activity_na <- activity[which(is.na(activity$steps)),]
+ activity_na$steps <- ifelse(activity_na$interval==interval_only$interval,interval_only$average)
+ activity_impute <- rbind(activity_no_NA,activity_na)
+ head(activity_impute)
+ activity_impute_stepsperday<-activity_impute%>%group_by(date)%>%summarise(stepsperday=sum(steps))
+ qplot(stepsperday,data =activity_impute_stepsperday,fill="red",xlab ="Total Steps per Day",ylab = "Frequency",main = "Total Number of Steps Taken per Day")
+ totalstepsmean2<-activity_impute_stepsperday%>%summarise(mean=mean(stepsperday,na.rm = TRUE))
+ totalstepsmean2
+ totalstepsmedian2<-activity_impute_stepsperday%>%summarise(median=median(stepsperday,na.rm = TRUE))
+ totalstepsmedian2
+```
+
+### Are there differences in activity patterns between weekdays and weekends?
+```{r message=FALSE}
+ activity_impute$weekend <- as.factor(ifelse(weekdays(activity$date)=="Saturday"|weekdays(activity$date)=="Sunday","weekend","weekday"))
+ activity_impute$dayofweek <- as.factor(weekdays(activity$date))
+ meansteps <- activity_impute %>% group_by(interval,weekend) %>%   summarise(average = mean(steps))
+ qplot(interval,average,data=meansteps,geom="line",facets=weekend~.,xlab="5-minute interval",ylab="average number of steps",main="Average steps pattern between Weekday and Weekend")
+```
